@@ -12,6 +12,7 @@ const (
 	TerminatingGateway string = "terminatinggateway"
 
 	Global                 string = "global"
+	Cluster                string = "cluster"
 	DefaultConsulNamespace string = "default"
 	WildcardNamespace      string = "*"
 

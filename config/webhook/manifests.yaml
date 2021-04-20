@@ -13,6 +13,27 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-v1alpha1-cluster
+  failurePolicy: Fail
+  name: mutate-cluster.consul.hashicorp.com
+  rules:
+  - apiGroups:
+    - consul.hashicorp.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - cluster
+  sideEffects: None
+- admissionReviewVersions:
+  - v1beta1
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-v1alpha1-ingressgateway
   failurePolicy: Fail
   name: mutate-ingressgateway.consul.hashicorp.com

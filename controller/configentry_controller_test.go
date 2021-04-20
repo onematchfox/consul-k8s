@@ -131,6 +131,36 @@ func TestConfigEntryControllers_createsConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			kubeKind:   "Cluster",
+			consulKind: capi.ClusterConfig,
+			configEntryResource: &v1alpha1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      common.Cluster,
+					Namespace: kubeNS,
+				},
+				Spec: v1alpha1.ClusterSpec{
+					TransparentProxy: v1alpha1.TransparentProxyClusterConfig{
+						CatalogDestinationsOnly: true,
+					},
+				},
+			},
+			reconciler: func(client client.Client, consulClient *capi.Client, logger logr.Logger) testReconciler {
+				return &ClusterController{
+					Client: client,
+					Log:    logger,
+					ConfigEntryController: &ConfigEntryController{
+						ConsulClient:   consulClient,
+						DatacenterName: datacenterName,
+					},
+				}
+			},
+			compare: func(t *testing.T, consulEntry capi.ConfigEntry) {
+				cluster, ok := consulEntry.(*capi.ClusterConfigEntry)
+				require.True(t, ok, "cast error")
+				require.True(t, cluster.TransparentProxy.CatalogDestinationsOnly)
+			},
+		},
+		{
 			kubeKind:   "ServiceRouter",
 			consulKind: capi.ServiceRouter,
 			consulPrereqs: []capi.ConfigEntry{
@@ -546,6 +576,40 @@ func TestConfigEntryControllers_updatesConfigEntry(t *testing.T) {
 				proxyDefault, ok := consulEntry.(*capi.ProxyConfigEntry)
 				require.True(t, ok, "cast error")
 				require.Equal(t, capi.MeshGatewayModeLocal, proxyDefault.MeshGateway.Mode)
+			},
+		},
+		{
+			kubeKind:   "Cluster",
+			consulKind: capi.ClusterConfig,
+			configEntryResource: &v1alpha1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      common.Cluster,
+					Namespace: kubeNS,
+				},
+				Spec: v1alpha1.ClusterSpec{
+					TransparentProxy: v1alpha1.TransparentProxyClusterConfig{
+						CatalogDestinationsOnly: true,
+					},
+				},
+			},
+			reconciler: func(client client.Client, consulClient *capi.Client, logger logr.Logger) testReconciler {
+				return &ClusterController{
+					Client: client,
+					Log:    logger,
+					ConfigEntryController: &ConfigEntryController{
+						ConsulClient:   consulClient,
+						DatacenterName: datacenterName,
+					},
+				}
+			},
+			updateF: func(resource common.ConfigEntryResource) {
+				cluster := resource.(*v1alpha1.Cluster)
+				cluster.Spec.TransparentProxy.CatalogDestinationsOnly = false
+			},
+			compare: func(t *testing.T, consulEntry capi.ConfigEntry) {
+				clusterConfigEntry, ok := consulEntry.(*capi.ClusterConfigEntry)
+				require.True(t, ok, "cast error")
+				require.False(t, clusterConfigEntry.TransparentProxy.CatalogDestinationsOnly)
 			},
 		},
 		{
@@ -969,6 +1033,33 @@ func TestConfigEntryControllers_deletesConfigEntry(t *testing.T) {
 			},
 			reconciler: func(client client.Client, consulClient *capi.Client, logger logr.Logger) testReconciler {
 				return &ProxyDefaultsController{
+					Client: client,
+					Log:    logger,
+					ConfigEntryController: &ConfigEntryController{
+						ConsulClient:   consulClient,
+						DatacenterName: datacenterName,
+					},
+				}
+			},
+		},
+		{
+			kubeKind:   "Cluster",
+			consulKind: capi.ClusterConfig,
+			configEntryResourceWithDeletion: &v1alpha1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              common.Global,
+					Namespace:         kubeNS,
+					DeletionTimestamp: &metav1.Time{Time: time.Now()},
+					Finalizers:        []string{FinalizerName},
+				},
+				Spec: v1alpha1.ClusterSpec{
+					TransparentProxy: v1alpha1.TransparentProxyClusterConfig{
+						CatalogDestinationsOnly: true,
+					},
+				},
+			},
+			reconciler: func(client client.Client, consulClient *capi.Client, logger logr.Logger) testReconciler {
+				return &ClusterController{
 					Client: client,
 					Log:    logger,
 					ConfigEntryController: &ConfigEntryController{
