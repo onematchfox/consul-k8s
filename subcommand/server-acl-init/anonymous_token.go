@@ -6,7 +6,7 @@ import (
 
 // configureAnonymousPolicy sets up policies and tokens so that Consul DNS and
 // cross-datacenter Consul connect calls will work.
-func (c *Command) configureAnonymousPolicy(consulClient *api.Client) error {
+func (c *Command) configureAnonymousPolicy(consulClient *api.Client, tokensCreated map[string]string) error {
 	anonRules, err := c.anonymousTokenRules()
 	if err != nil {
 		c.log.Error("Error templating anonymous token rules", "err", err)
@@ -37,7 +37,8 @@ func (c *Command) configureAnonymousPolicy(consulClient *api.Client) error {
 	// Update anonymous token to include this policy
 	return c.untilSucceeds("updating anonymous token with policy",
 		func() error {
-			_, _, err := consulClient.ACL().TokenUpdate(&aToken, &api.WriteOptions{})
+			_ , _, err = consulClient.ACL().TokenUpdate(&aToken, &api.WriteOptions{})
+			tokensCreated["anonymous"] = aToken.AccessorID
 			return err
 		})
 }
